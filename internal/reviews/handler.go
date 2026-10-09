@@ -164,12 +164,16 @@ func (handler *Handler) requireReview(responseWriter http.ResponseWriter, reques
 		handler.reviewNotFound(responseWriter)
 		return Review{}, false
 	}
+	current, found := handler.requireAuth(responseWriter, request)
+	if !found {
+		return Review{}, false
+	}
 	review, found, err := handler.store.FindByID(request.Context(), reviewID)
 	if err != nil {
 		handler.internalError(responseWriter, request, err)
 		return Review{}, false
 	}
-	if !found {
+	if !found || review.UserID != current.User.ID {
 		handler.reviewNotFound(responseWriter)
 		return Review{}, false
 	}

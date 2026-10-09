@@ -119,7 +119,7 @@ func (handler *Handler) CreateProduct(responseWriter http.ResponseWriter, reques
 }
 
 func (handler *Handler) EditProduct(responseWriter http.ResponseWriter, request *http.Request) {
-	current, ok := handler.requireProductEditor(responseWriter, request)
+	current, ok := handler.requireAdmin(responseWriter, request)
 	if !ok {
 		return
 	}
@@ -131,7 +131,7 @@ func (handler *Handler) EditProduct(responseWriter http.ResponseWriter, request 
 }
 
 func (handler *Handler) UpdateProduct(responseWriter http.ResponseWriter, request *http.Request) {
-	current, ok := handler.requireProductEditor(responseWriter, request)
+	current, ok := handler.requireAdmin(responseWriter, request)
 	if !ok {
 		return
 	}
@@ -221,7 +221,7 @@ func (handler *Handler) requireAdmin(responseWriter http.ResponseWriter, request
 	}
 	return current, true
 }
-
+/*
 func (handler *Handler) requireProductEditor(responseWriter http.ResponseWriter, request *http.Request) (accounts.CurrentSession, bool) {
 	current, found, err := sessions.Require(responseWriter, request, handler.accountStore)
 	if err != nil {
@@ -237,7 +237,7 @@ func (handler *Handler) requireProductEditor(responseWriter http.ResponseWriter,
 	}
 	return current, true
 }
-
+*/
 func (handler *Handler) requireProduct(responseWriter http.ResponseWriter, request *http.Request) (Product, bool) {
 	productID, valid := httpx.ParseSafeInteger(request.PathValue("id"))
 	if !valid {
