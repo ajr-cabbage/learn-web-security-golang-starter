@@ -9,6 +9,7 @@ import (
 	"math"
 	"net"
 	"net/http"
+	"net/url"
 	"slices"
 	"strconv"
 	"strings"
@@ -29,8 +30,38 @@ func applyMiddleware(handler http.Handler, middlewareChain ...middleware) http.H
 	return handler
 }
 
+func stopCSRF(trustedOrigin string, rend *templates.Renderer) middleware {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(responseWriter http.ResponseWriter, request *http.Request) {
+			if request.Method != "POST" {
+				next.ServeHTTP(responseWriter, request)
+				return
+			}
+			origin := request.Header.Get("Origin")
+			if origin == trustedOrigin {
+				next.ServeHTTP(responseWriter, request)
+				return
+			}
+			rawReferer := request.Header.Get("Referer")
+			parsedRefURL, err := url.Parse(rawReferer)
+			if err != nil {
+				responseWriter.WriteHeader(http.StatusForbidden)
+				return
+			}
+			ref := parsedRefURL.Scheme + "://" + parsedRefURL.Host
+			fmt.Printf("TRUSTED ORIGIN: %s  ORIGIN: %s  REFERER: %s\n", trustedOrigin, origin, ref)
+			if origin == "" && ref == trustedOrigin {
+				next.ServeHTTP(responseWriter, request)
+				return
+			}
+			responseWriter.WriteHeader(http.StatusForbidden)
+			return
+		})
+	}
+}
+
 func noSniffHeader(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(responseWriter http.ResponseWriter, request *http.Request){
+	return http.HandlerFunc(func(responseWriter http.ResponseWriter, request *http.Request) {
 		responseWriter.Header().Set("X-Content-Type-Options", "nosniff")
 		next.ServeHTTP(responseWriter, request)
 	})
