@@ -67,6 +67,14 @@ func noSniffHeader(next http.Handler) http.Handler {
 	})
 }
 
+func cspHeader(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(responseWriter http.ResponseWriter, request *http.Request) {
+		nonceValue := httpx.CSPNonce(request.Context())
+		responseWriter.Header().Set("Content-Security-Policy", fmt.Sprintf("default-src 'self'; script-src 'self' 'nonce-%s'; style-src 'self'; img-src 'self' data:; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'", nonceValue))
+		next.ServeHTTP(responseWriter, request)
+	})
+}
+
 func permissiveCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(responseWriter http.ResponseWriter, request *http.Request) {
 		if origin := request.Header.Get("Origin"); origin != "" {
