@@ -147,6 +147,7 @@ func New(database *sql.DB, logger *logging.Logger, options Options) (*Applicatio
 	dynamicMux.HandleFunc("GET /api/account/orders", apiHandler.AccountOrders)
 	dynamicMux.HandleFunc("GET /api/orders/{id}", apiHandler.Order)
 	dynamicMux.HandleFunc("GET /api/products", apiHandler.Products)
+	dynamicMux.HandleFunc("OPTIONS /api/products", apiHandler.OptionsProducts)
 	dynamicMux.HandleFunc("GET /api/integrations/warehouse/orders", apiHandler.WarehouseOrders)
 	dynamicMux.Handle("POST /products/{id}/reviews", parseForm(options.MaxRequestBodyBytes, renderer)(http.HandlerFunc(reviewHandler.Create)))
 	dynamicMux.HandleFunc("GET /login", authenticationHandler.LoginPage)
@@ -217,7 +218,6 @@ func New(database *sql.DB, logger *logging.Logger, options Options) (*Applicatio
 
 	dynamicHandler := applyMiddleware(
 		dynamicMux,
-		permissiveCORS,
 		stopCSRF(options.AppOrigin, renderer),
 	)
 
@@ -230,9 +230,9 @@ func New(database *sql.DB, logger *logging.Logger, options Options) (*Applicatio
 	mainMux.Handle("GET /styles.css", staticHandler)
 	mainMux.Handle("GET /passkey.js", staticHandler)
 	mainMux.Handle("GET /vendor/simplewebauthn/index.umd.min.js", staticHandler)
-	mainMux.Handle("GET /shipping-widget.css", staticHandler)
+	mainMux.Handle("GET /shipping-widget.css", overrideCORP(staticHandler))
 	mainMux.Handle("GET /shipping-widget.html", staticHandler)
-	mainMux.Handle("GET /shipping-widget.js", staticHandler)
+	mainMux.Handle("GET /shipping-widget.js", overrideCORP(staticHandler))
 	mainMux.Handle("GET /product-photos/{filename}", staticHandler)
 	mainMux.HandleFunc("POST /integrations/pawpal/webhook", pawPalHandler.Webhook)
 	mainMux.Handle("/", dynamicHandler)
@@ -240,9 +240,8 @@ func New(database *sql.DB, logger *logging.Logger, options Options) (*Applicatio
 	handler := applyMiddleware(
 		mainMux,
 		cspNonce,
-		cspHeader,
+		securityHeaders,
 		recoverPanics(logger, renderer),
-		noSniffHeader,
 	)
 	return &Application{Handler: handler, publicRoot: publicRoot}, nil
 }

@@ -91,13 +91,23 @@ func (handler *Handler) Products(responseWriter http.ResponseWriter, request *ht
 		handler.internalError(responseWriter, request, err)
 		return
 	}
+	responseWriter.Header().Set("Access-Control-Allow-Origin", "*")
+	//responseWriter.Header().Set("Access-Control-Allow-Credentials", "false")
 	httpx.RespondWithJSON(responseWriter, http.StatusOK, map[string]any{"products": products})
+}
+
+func (handler *Handler) OptionsProducts(responseWriter http.ResponseWriter, request *http.Request) {
+	responseWriter.Header().Set("Access-Control-Allow-Origin", "*")
+	responseWriter.Header().Set("Access-Control-Allow-Methods", "GET")
+	//responseWriter.Header().Set("Access-Control-Allow-Credentials", "false")
+	//responseWriter.Header().Set("Access-Control-Allow-Headers", "Accept, Accept-Language, Content-Language, Content-Type, Range")
+	responseWriter.WriteHeader(http.StatusNoContent)
 }
 
 func (handler *Handler) WarehouseOrders(responseWriter http.ResponseWriter, request *http.Request) {
 	apiKey := request.Header.Get("X-API-Key")
 	if apiKey == "" {
-		httpx.RespondWithError(responseWriter, http.StatusUnauthorized, "Missing API Key")		
+		httpx.RespondWithError(responseWriter, http.StatusUnauthorized, "Missing API Key")
 		return
 	}
 	key, valid, err := handler.apiStore.FindKey(request.Context(), apiKey)
